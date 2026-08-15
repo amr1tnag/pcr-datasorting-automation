@@ -18,10 +18,10 @@ SETTINGS_PATH: Path = PROJECT_ROOT / "settings.yaml"
 DEFAULTS: dict[str, Any] = {
     "watermark_path": "assets/watermark.png",
     "watermark_scale": 0.10,
-    "watermark_opacity": 0.75,
+    "watermark_opacity": 1.0,
     "watermark_margin": 0.025,
     "watermark_corner": "bottom-right",
-    "watermark_shadow": True,
+    "watermark_shadow": False,
     "jpeg_quality": 92,
     "drive_root": "PhotoCircle",
     "drive_mode": "google",
@@ -48,8 +48,9 @@ watermark_path: assets/watermark.png
 # same number — 0.10 is about right for it, 0.16 suits a wordmark.
 watermark_scale: 0.10
 
-# Watermark alpha, 0.0 (invisible) to 1.0 (opaque).
-watermark_opacity: 0.75
+# Watermark alpha, 0.0 (invisible) to 1.0 (opaque). 1.0 puts the logo on
+# exactly as drawn; lower it if the mark feels heavy over a busy photo.
+watermark_opacity: 1.0
 
 # Gap from the edge of the frame, same fraction of the long edge.
 watermark_margin: 0.025
@@ -57,9 +58,9 @@ watermark_margin: 0.025
 # bottom-right, bottom-left, top-right, top-left or bottom-centre.
 watermark_corner: bottom-right
 
-# Soft dark halo behind the mark. Leave this on for a white logo, or it
-# vanishes against a bright sky.
-watermark_shadow: true
+# Soft dark halo behind the mark. Off: the logo goes on exactly as drawn.
+# Turn it on if a white mark starts disappearing against bright skies.
+watermark_shadow: false
 
 # JPEG quality for watermarked output, 1-95.
 jpeg_quality: 92

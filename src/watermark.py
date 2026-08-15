@@ -41,10 +41,10 @@ class WatermarkStyle:
 
     path: Path
     scale: float = 0.10          # width, as a fraction of the photo's long edge
-    opacity: float = 0.75
+    opacity: float = 1.0
     margin: float = 0.025        # gap from the edges, same fraction
     corner: str = "bottom-right"
-    shadow: bool = True          # keeps a white mark readable on a bright sky
+    shadow: bool = False         # off: the mark goes on exactly as drawn
     jpeg_quality: int = 92
 
     @classmethod
@@ -62,10 +62,10 @@ class WatermarkStyle:
         return cls(
             path=path,
             scale=float(cfg.get("watermark_scale", 0.10)),
-            opacity=float(cfg.get("watermark_opacity", 0.75)),
+            opacity=float(cfg.get("watermark_opacity", 1.0)),
             margin=float(cfg.get("watermark_margin", 0.025)),
             corner=corner,
-            shadow=bool(cfg.get("watermark_shadow", True)),
+            shadow=bool(cfg.get("watermark_shadow", False)),
             jpeg_quality=int(cfg.get("jpeg_quality", 92)),
         )
 
@@ -131,9 +131,9 @@ _SHADOW_PASSES: int = 2
 def _compose(sized: Image.Image, style: WatermarkStyle) -> Image.Image:
     """Fade the mark and, if asked, lay a soft dark blur underneath it.
 
-    Club logos are usually white, and a white mark over a bright sky or a
-    white kurta simply disappears. The shadow costs nothing on a dark
-    background and rescues the mark on a light one.
+    The halo is off by default: the club wants the logo composited exactly
+    as drawn. It is kept as a setting because the club mark is pure white,
+    and a white mark over a bright sky or a white kurta can disappear.
 
     The shadow is built from the mark's *original* alpha, before the opacity
     setting is applied. A faint watermark is precisely the case that needs
