@@ -16,8 +16,12 @@ PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
 SETTINGS_PATH: Path = PROJECT_ROOT / "settings.yaml"
 
 DEFAULTS: dict[str, Any] = {
+    "watermark_path": "assets/watermark-placeholder.png",
     "watermark_scale": 0.16,
     "watermark_opacity": 0.75,
+    "watermark_margin": 0.025,
+    "watermark_corner": "bottom-right",
+    "watermark_shadow": True,
     "jpeg_quality": 92,
     "drive_root": "PhotoCircle",
     "drive_mode": "google",
@@ -35,11 +39,25 @@ DEFAULTS: dict[str, Any] = {
 DEFAULT_SETTINGS_YAML: str = """\
 # Photo Circle settings. Delete a key to fall back to its built-in default.
 
+# The club logo, as a transparent PNG. Drop the real one in at
+# assets/watermark.png and change this line to point at it.
+watermark_path: assets/watermark-placeholder.png
+
 # Watermark width as a fraction of the photo's long edge.
 watermark_scale: 0.16
 
 # Watermark alpha, 0.0 (invisible) to 1.0 (opaque).
 watermark_opacity: 0.75
+
+# Gap from the edge of the frame, same fraction of the long edge.
+watermark_margin: 0.025
+
+# bottom-right, bottom-left, top-right, top-left or bottom-centre.
+watermark_corner: bottom-right
+
+# Soft dark halo behind the mark. Leave this on for a white logo, or it
+# vanishes against a bright sky.
+watermark_shadow: true
 
 # JPEG quality for watermarked output, 1-95.
 jpeg_quality: 92
