@@ -1,0 +1,9 @@
+# Install with:  py -m pip install -r requirements.txt
+# Windows note: nothing here needs a compiler, so a plain install works.
+
+PyYAML>=6.0          # settings.yaml
+Pillow>=10.0         # watermarking, and reading dimensions EXIF omits
+ExifRead>=3.0        # metadata fallback for files Drive cannot parse
+
+# Test-only
+pytest>=8.0
