@@ -19,7 +19,8 @@ from PIL import Image, ImageFilter, ImageOps
 
 log = logging.getLogger(__name__)
 
-PLACEHOLDER_NAME: str = "watermark-placeholder.png"
+# Where the club logo is expected to be, relative to the project folder.
+DEFAULT_MARK: str = "assets/watermark.png"
 
 CORNERS: tuple[str, ...] = (
     "bottom-right",
@@ -48,7 +49,7 @@ class WatermarkStyle:
 
     @classmethod
     def from_config(cls, cfg: dict[str, Any], project_root: Path) -> WatermarkStyle:
-        raw_path = str(cfg.get("watermark_path", f"assets/{PLACEHOLDER_NAME}"))
+        raw_path = str(cfg.get("watermark_path", DEFAULT_MARK))
         path = Path(raw_path).expanduser()
         if not path.is_absolute():
             path = project_root / path
@@ -68,11 +69,6 @@ class WatermarkStyle:
             jpeg_quality=int(cfg.get("jpeg_quality", 92)),
         )
 
-    @property
-    def is_placeholder(self) -> bool:
-        """True while the club's real logo has not been dropped in yet."""
-        return self.path.name == PLACEHOLDER_NAME
-
 
 def load_mark(style: WatermarkStyle) -> Image.Image:
     """Read the logo once, as RGBA.
@@ -82,8 +78,9 @@ def load_mark(style: WatermarkStyle) -> Image.Image:
     """
     if not style.path.exists():
         raise WatermarkError(
-            f"No watermark image at {style.path}. Put the club logo there, "
-            "or point watermark_path at it in settings.yaml."
+            f"No watermark image at {style.path}. Put the club logo there as "
+            "a transparent PNG, or point watermark_path at it in "
+            "settings.yaml. Photos are held rather than published unmarked."
         )
     try:
         with Image.open(style.path) as opened:
@@ -91,12 +88,6 @@ def load_mark(style: WatermarkStyle) -> Image.Image:
     except OSError as exc:
         raise WatermarkError(f"{style.path} is not a readable image: {exc}") from exc
 
-    if style.is_placeholder:
-        log.warning(
-            "Using the placeholder watermark. Replace assets/%s with the club "
-            "logo before these photos go out.",
-            PLACEHOLDER_NAME,
-        )
     return mark
 
 

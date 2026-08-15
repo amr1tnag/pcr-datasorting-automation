@@ -40,31 +40,20 @@ def mark(style: WatermarkStyle) -> Image.Image:
     return watermark.load_mark(style)
 
 
-# --- the placeholder ------------------------------------------------------
+# --- finding the logo -----------------------------------------------------
 
 
-def test_placeholder_is_committed_and_loadable() -> None:
-    """Until the club logo arrives, the pipeline must still run."""
-    placeholder = PROJECT_ROOT / "assets" / watermark.PLACEHOLDER_NAME
-    assert placeholder.exists()
-    style = WatermarkStyle(path=placeholder)
-    assert style.is_placeholder
-    assert watermark.load_mark(style).mode == "RGBA"
+def test_the_assets_folder_survives_without_a_logo_in_it() -> None:
+    """git drops empty folders, and the club needs somewhere to upload to."""
+    assets = PROJECT_ROOT / "assets"
+    assert assets.is_dir()
+    assert (assets / "README.md").exists()
 
 
-def test_a_real_logo_is_not_reported_as_placeholder(tmp_path: Path) -> None:
-    style = WatermarkStyle(path=_mark_file(tmp_path / "watermark.png"))
-    assert not style.is_placeholder
-
-
-def test_placeholder_use_is_warned_about(
-    style: WatermarkStyle, caplog: pytest.LogCaptureFixture, tmp_path: Path
-) -> None:
-    placeholder = tmp_path / watermark.PLACEHOLDER_NAME
-    _mark_file(placeholder)
-    with caplog.at_level("WARNING"):
-        watermark.load_mark(WatermarkStyle(path=placeholder))
-    assert "placeholder" in caplog.text.lower()
+def test_no_stand_in_logo_is_shipped() -> None:
+    """A placeholder in the repo is a gallery published with the wrong mark."""
+    images = [p.name for p in (PROJECT_ROOT / "assets").glob("*.png")]
+    assert images in ([], ["watermark.png"]), f"unexpected images in assets: {images}"
 
 
 def test_missing_logo_says_what_to_do(tmp_path: Path) -> None:
@@ -305,5 +294,13 @@ def test_an_unknown_corner_falls_back_instead_of_crashing(tmp_path: Path) -> Non
     assert style.corner == "bottom-right"
 
 
-def test_defaults_point_at_the_placeholder(tmp_path: Path) -> None:
-    assert WatermarkStyle.from_config({}, tmp_path).is_placeholder
+def test_defaults_point_at_the_club_logo(tmp_path: Path) -> None:
+    """No setting needed: drop the PNG in assets and it is found."""
+    assert WatermarkStyle.from_config({}, tmp_path).path == tmp_path / "assets" / "watermark.png"
+
+
+def test_a_missing_logo_is_held_not_published(tmp_path: Path) -> None:
+    """The error names the file, so the fix is obvious from the log alone."""
+    style = WatermarkStyle.from_config({}, tmp_path)
+    with pytest.raises(WatermarkError, match="watermark.png"):
+        watermark.load_mark(style)

@@ -16,7 +16,7 @@ PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
 SETTINGS_PATH: Path = PROJECT_ROOT / "settings.yaml"
 
 DEFAULTS: dict[str, Any] = {
-    "watermark_path": "assets/watermark-placeholder.png",
+    "watermark_path": "assets/watermark.png",
     "watermark_scale": 0.16,
     "watermark_opacity": 0.75,
     "watermark_margin": 0.025,
@@ -39,9 +39,9 @@ DEFAULTS: dict[str, Any] = {
 DEFAULT_SETTINGS_YAML: str = """\
 # Photo Circle settings. Delete a key to fall back to its built-in default.
 
-# The club logo, as a transparent PNG. Drop the real one in at
-# assets/watermark.png and change this line to point at it.
-watermark_path: assets/watermark-placeholder.png
+# The club logo, as a transparent PNG. Drop it in at assets/watermark.png
+# and this works as-is; point elsewhere if you keep it somewhere else.
+watermark_path: assets/watermark.png
 
 # Watermark width as a fraction of the photo's long edge.
 watermark_scale: 0.16
