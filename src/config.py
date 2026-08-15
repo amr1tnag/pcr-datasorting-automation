@@ -20,6 +20,13 @@ DEFAULTS: dict[str, Any] = {
     "watermark_opacity": 0.75,
     "jpeg_quality": 92,
     "drive_root": "PhotoCircle",
+    "drive_mode": "google",
+    "drop_folder_id": "",
+    "archive_folder_id": "",
+    "oauth_client_secret": "client_secret.json",
+    "oauth_token": "token.json",
+    "fake_drive_dir": "~/PhotoCircle/FAKEDRIVE",
+    "poll_interval_secs": 60,
     "stable_wait_secs": 2.0,
     "upload_workers": 3,
     "base_dir": "~/PhotoCircle",
@@ -39,6 +46,29 @@ jpeg_quality: 92
 
 # Name of the top-level folder created in Google Drive.
 drive_root: PhotoCircle
+
+# 'google' for the real Drive, 'fake' to sort into a local folder instead.
+# Fake mode needs no credentials and is the safe way to try the tool out.
+drive_mode: google
+
+# The folder volunteers upload into. Copy the id out of its Drive URL:
+# https://drive.google.com/drive/folders/<this bit>
+drop_folder_id: ""
+
+# The folder the sorted archive is built in. Must NOT be inside the drop
+# folder, or the tool would find its own output and sort it again.
+archive_folder_id: ""
+
+# Google OAuth files, relative to the project folder. Both are secrets and
+# are kept out of git.
+oauth_client_secret: client_secret.json
+oauth_token: token.json
+
+# Where fake mode builds its tree.
+fake_drive_dir: ~/PhotoCircle/FAKEDRIVE
+
+# Seconds between checks of the drop folder.
+poll_interval_secs: 60
 
 # Seconds a file's size must stay unchanged before it counts as fully written.
 stable_wait_secs: 2.0

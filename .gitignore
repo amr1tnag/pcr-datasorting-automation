@@ -4,3 +4,7 @@ __pycache__/
 
 # Machine-local settings, regenerated with commented defaults on first run.
 settings.yaml
+
+# Google credentials. Never commit these.
+client_secret.json
+token.json
