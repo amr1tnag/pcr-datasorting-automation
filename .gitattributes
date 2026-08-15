@@ -1,0 +1,5 @@
+# Windows launchers must keep CRLF endings or cmd.exe mangles them.
+*.bat text eol=crlf
+
+# Everything else is normalised to LF in the repository.
+* text=auto

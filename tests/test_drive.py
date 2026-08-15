@@ -260,20 +260,27 @@ def test_missing_file_ids_raise_rather_than_return_none(drive: FakeDrive) -> Non
 
 
 @pytest.mark.parametrize("forbidden", ["delete", "trash", "remove", "purge"])
-def test_no_deletion_call_exists_in_the_drive_layer(forbidden: str) -> None:
+def test_nothing_in_the_project_deletes_from_drive(forbidden: str) -> None:
     """Guards the first non-negotiable against a future well-meaning edit.
 
-    Clearing the inbox is a human action taken after the archive copy is
-    verified. If someone adds a delete here, this test should stop them and
-    send them to read why.
+    Losing an event's photos is the one unrecoverable failure this project
+    can have; everything else is a delay. Clearing the drop folder is a
+    human action, taken after the archive copy has been verified. If someone
+    adds a deletion here, this test should stop them and send them to read
+    why — the README says the same thing in prose.
+
+    Local staging copies are a different matter and use unlink(), which this
+    deliberately does not match: those are working files, and the archive
+    holds both versions by the time they go.
     """
-    source = Path(drive_module.__file__).read_text(encoding="utf-8")
-    offenders = [
-        line.strip()
-        for line in source.splitlines()
-        if f".{forbidden}(" in line and not line.strip().startswith(("#", "*"))
-    ]
-    assert offenders == []
+    offenders: list[str] = []
+    for module in sorted(Path(drive_module.__file__).parent.glob("*.py")):
+        for number, line in enumerate(module.read_text(encoding="utf-8").splitlines(), 1):
+            stripped = line.strip()
+            if f".{forbidden}(" in stripped and not stripped.startswith(("#", "*", '"')):
+                offenders.append(f"{module.name}:{number}  {stripped}")
+
+    assert offenders == [], "deletion added to: " + "; ".join(offenders)
 
 
 def test_the_protocol_and_the_fake_have_not_drifted() -> None:

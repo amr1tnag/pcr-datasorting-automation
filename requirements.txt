@@ -1,9 +1,15 @@
-# Install with:  py -m pip install -r requirements.txt
-# Windows note: nothing here needs a compiler, so a plain install works.
+# One-time setup on a new machine:  py -m pip install -r requirements.txt
+# Or just double-click install.bat on Windows.
+# Nothing here needs a compiler.
 
-PyYAML>=6.0          # settings.yaml
-Pillow>=10.0         # watermarking, and reading dimensions EXIF omits
-ExifRead>=3.0        # metadata fallback for files Drive cannot parse
+PyYAML>=6.0                     # settings.yaml
+Pillow>=10.0                    # watermarking, and reading dimensions EXIF omits
+ExifRead>=3.0                   # metadata fallback for files Drive cannot parse
+Flask>=3.0                      # the manager's dashboard
+
+# Google Drive
+google-api-python-client>=2.100
+google-auth-oauthlib>=1.1
 
 # Test-only
 pytest>=8.0
