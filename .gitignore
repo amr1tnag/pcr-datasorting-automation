@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Machine-local settings, regenerated with commented defaults on first run.
+settings.yaml
