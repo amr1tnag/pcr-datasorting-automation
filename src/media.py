@@ -297,11 +297,29 @@ def normalise_event(raw: str | None) -> str:
     if not cleaned:
         return UNSORTED_EVENT
 
-    # Title-case only the words that are not already deliberately capitalised,
-    # so 'EPL' and 'DYDT20' survive intact but 'ganpati day 2' becomes
-    # 'Ganpati Day 2'.
-    words = [word if any(ch.isupper() for ch in word) else word.title() for word in cleaned.split()]
-    return " ".join(words)
+    return " ".join(_tidy_event_word(word) for word in cleaned.split())
+
+
+# Longest word still treated as an acronym rather than a shouted name.
+# 'EPL' and 'RAIT' stay as they are; 'HORIZON' becomes 'Horizon'.
+ACRONYM_MAX_LETTERS: int = 4
+
+
+def _tidy_event_word(word: str) -> str:
+    """Normalise one word of an event name without mangling acronyms.
+
+    Volunteers type the same event as 'horizon', 'Horizon' and 'HORIZON',
+    and all three have to reach one folder — the event equivalent of three
+    folders for one camera body. The exceptions are names that are genuinely
+    written in capitals, which are short or carry a number.
+    """
+    if any(character.isdigit() for character in word):
+        return word  # DYDT20, EPL2, 100CANON
+    if word.isupper():
+        return word if len(word) <= ACRONYM_MAX_LETTERS else word.title()
+    if any(character.isupper() for character in word):
+        return word  # deliberate mixed case, e.g. a sponsor's name
+    return word.title()
 
 
 def event_key(name: str | None) -> str:

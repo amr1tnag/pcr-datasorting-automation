@@ -97,7 +97,23 @@ def init_db() -> None:
                 drive_id     TEXT,
                 error        TEXT,
                 created_at   TEXT,
-                updated_at   TEXT
+                updated_at   TEXT,
+                src_id       TEXT,
+                year         INTEGER,
+                reasons      TEXT,
+                attempts     INTEGER DEFAULT 0,
+                original_id  TEXT
+            );
+
+            -- One row per event and year: the folder the gallery link points
+            -- at, and the link itself once it has been shared.
+            CREATE TABLE IF NOT EXISTS galleries (
+                event      TEXT,
+                year       INTEGER,
+                folder_id  TEXT,
+                link       TEXT,
+                created_at TEXT,
+                PRIMARY KEY (event, year)
             );
 
             CREATE TABLE IF NOT EXISTS aliases (
@@ -112,8 +128,30 @@ def init_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_items_status ON items(status);
             CREATE INDEX IF NOT EXISTS idx_items_hash   ON items(hash);
+            CREATE INDEX IF NOT EXISTS idx_items_src    ON items(src_id);
             """
         )
+        _add_missing_columns(conn)
+
+
+# Columns added after the first release. A database already sitting on the
+# club laptop is upgraded in place rather than rebuilt: the archive's record
+# of what has been ingested is not worth losing to a schema change.
+LATER_COLUMNS: tuple[tuple[str, str], ...] = (
+    ("src_id", "TEXT"),
+    ("year", "INTEGER"),
+    ("reasons", "TEXT"),
+    ("attempts", "INTEGER DEFAULT 0"),
+    ("original_id", "TEXT"),
+)
+
+
+def _add_missing_columns(conn: sqlite3.Connection) -> None:
+    """Bring an older items table up to date, one ALTER at a time."""
+    existing = {row["name"] for row in conn.execute("PRAGMA table_info(items)")}
+    for column, declaration in LATER_COLUMNS:
+        if column not in existing:
+            conn.execute(f"ALTER TABLE items ADD COLUMN {column} {declaration}")
 
 
 def insert_item(
@@ -126,6 +164,9 @@ def insert_item(
     orientation: str,
     status: str = STATUS_REVIEW,
     needs_review: int = 0,
+    src_id: str | None = None,
+    year: int | None = None,
+    reasons: str = "",
 ) -> int | None:
     """Insert a new item, or return None if the hash was already ingested."""
     if status not in STATUSES:
@@ -137,8 +178,9 @@ def insert_item(
             """
             INSERT OR IGNORE INTO items
                 (hash, orig_name, staged_path, kind, event, camera,
-                 orientation, status, needs_review, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 orientation, status, needs_review, created_at, updated_at,
+                 src_id, year, reasons)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 hash,
@@ -152,6 +194,9 @@ def insert_item(
                 int(needs_review),
                 ts,
                 ts,
+                src_id,
+                year,
+                reasons,
             ),
         )
         if cur.rowcount == 0:
@@ -201,24 +246,39 @@ def claim_next_approved() -> sqlite3.Row | None:
         conn.close()
 
 
-def mark_uploaded(item_id: int, drive_id: str) -> None:
-    """Record a successful upload and clear any previous error."""
+def mark_uploaded(item_id: int, drive_id: str, original_id: str | None = None) -> None:
+    """Record a finished item and clear any previous error.
+
+    ``drive_id`` is what a viewer sees: the watermarked copy for a photo, or
+    the file itself for RAW and video. ``original_id`` is the unmarked
+    original once it has been filed away, which is what proves the source is
+    safely in the archive.
+    """
     with _conn() as conn:
         conn.execute(
             """
             UPDATE items
-               SET status = ?, drive_id = ?, error = NULL, updated_at = ?
+               SET status = ?, drive_id = ?, original_id = COALESCE(?, original_id),
+                   error = NULL, updated_at = ?
              WHERE id = ?
             """,
-            (STATUS_UPLOADED, drive_id, now_iso(), item_id),
+            (STATUS_UPLOADED, drive_id, original_id, now_iso(), item_id),
         )
 
 
 def mark_failed(item_id: int, error: str) -> None:
-    """Park an item as failed with the reason attached."""
+    """Park an item as failed with the reason attached.
+
+    The attempt count goes up so a file that fails every night is visible as
+    such in the dashboard rather than looking like a fresh problem.
+    """
     with _conn() as conn:
         conn.execute(
-            "UPDATE items SET status = ?, error = ?, updated_at = ? WHERE id = ?",
+            """
+            UPDATE items
+               SET status = ?, error = ?, attempts = attempts + 1, updated_at = ?
+             WHERE id = ?
+            """,
             (STATUS_FAILED, error, now_iso(), item_id),
         )
 
@@ -341,3 +401,128 @@ def list_events() -> list[str]:
     with _conn() as conn:
         rows = conn.execute("SELECT name FROM events ORDER BY name").fetchall()
     return [str(row["name"]) for row in rows]
+
+
+# --- galleries ------------------------------------------------------------
+
+
+def set_gallery(event: str, year: int, folder_id: str, link: str) -> None:
+    """Remember the shared folder for one event, and the link to it."""
+    with _conn() as conn:
+        conn.execute(
+            """
+            INSERT INTO galleries (event, year, folder_id, link, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(event, year) DO UPDATE SET
+                folder_id = excluded.folder_id,
+                link      = excluded.link
+            """,
+            (event, year, folder_id, link, now_iso()),
+        )
+
+
+def get_gallery(event: str, year: int) -> sqlite3.Row | None:
+    """The gallery row for one event, or None if it has not been shared."""
+    with _conn() as conn:
+        return conn.execute(
+            "SELECT * FROM galleries WHERE event = ? AND year = ?", (event, year)
+        ).fetchone()
+
+
+def list_galleries() -> list[sqlite3.Row]:
+    """Every shared gallery, newest year first."""
+    with _conn() as conn:
+        return conn.execute(
+            "SELECT * FROM galleries ORDER BY year DESC, event"
+        ).fetchall()
+
+
+# --- queries the dashboard and the runner ask for ------------------------
+
+
+def seen_source(src_id: str) -> bool:
+    """True if this Drive file has already been ingested.
+
+    Checked alongside the content hash: the hash catches the same card
+    copied twice under different names, this catches the same file seen
+    again on the next poll before anyone has moved it.
+    """
+    with _conn() as conn:
+        row = conn.execute("SELECT 1 FROM items WHERE src_id = ?", (src_id,)).fetchone()
+    return row is not None
+
+
+def review_queue(limit: int = 300) -> list[sqlite3.Row]:
+    """What the manager actually looks at: held items, oldest first.
+
+    Oldest first on purpose. The review queue is a to-do list, and the file
+    that has been waiting longest is the one most likely to be forgotten.
+    """
+    with _conn() as conn:
+        return conn.execute(
+            """
+            SELECT * FROM items
+             WHERE status = ? OR needs_review = 1
+             ORDER BY id ASC LIMIT ?
+            """,
+            (STATUS_REVIEW, limit),
+        ).fetchall()
+
+
+def failed_items(limit: int = 300) -> list[sqlite3.Row]:
+    """Items that errored, so the manager can retry them in bulk."""
+    with _conn() as conn:
+        return conn.execute(
+            "SELECT * FROM items WHERE status = ? ORDER BY id DESC LIMIT ?",
+            (STATUS_FAILED, limit),
+        ).fetchall()
+
+
+def requeue(ids: list[int]) -> int:
+    """Send failed items back to the worker. Returns rows changed."""
+    if not ids:
+        return 0
+    placeholders = ", ".join("?" for _ in ids)
+    with _conn() as conn:
+        cur = conn.execute(
+            f"""
+            UPDATE items
+               SET status = ?, error = NULL, updated_at = ?
+             WHERE id IN ({placeholders})
+            """,
+            [STATUS_APPROVED, now_iso(), *ids],
+        )
+        return cur.rowcount
+
+
+def release_stuck_uploads() -> int:
+    """Return half-processed items to the queue after a crash.
+
+    A killed worker leaves rows marked 'uploading' that nothing will ever
+    pick up again. Every step it performs is safe to repeat, so the honest
+    recovery is to put them back rather than have a human hunt for them.
+    """
+    with _conn() as conn:
+        cur = conn.execute(
+            "UPDATE items SET status = ?, updated_at = ? WHERE status = ?",
+            (STATUS_APPROVED, now_iso(), STATUS_UPLOADING),
+        )
+        return cur.rowcount
+
+
+def event_summary() -> list[sqlite3.Row]:
+    """Per-event counts for the dashboard's front page."""
+    with _conn() as conn:
+        return conn.execute(
+            """
+            SELECT event,
+                   year,
+                   COUNT(*)                                   AS total,
+                   SUM(status = 'uploaded')                   AS done,
+                   SUM(status = 'failed')                     AS failed,
+                   SUM(status = 'review' OR needs_review = 1) AS held
+              FROM items
+             GROUP BY event, year
+             ORDER BY year DESC, event
+            """
+        ).fetchall()

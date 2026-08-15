@@ -160,9 +160,21 @@ def test_casing_and_spacing_collapse_to_one_event() -> None:
     assert media.event_key("HORIZON") == media.event_key("horizon ")
 
 
-def test_deliberate_capitals_survive() -> None:
+def test_short_acronyms_and_numbered_names_survive() -> None:
     assert media.normalise_event("EPL finals") == "EPL Finals"
     assert media.normalise_event("DYDT20") == "DYDT20"
+    assert media.normalise_event("RAIT") == "RAIT"
+
+
+def test_a_shouted_event_name_is_the_same_event() -> None:
+    """'HORIZON' and 'horizon' must not become two folders."""
+    assert media.normalise_event("HORIZON") == "Horizon"
+    assert media.normalise_event("GANPATI day 2") == "Ganpati Day 2"
+    assert (
+        media.normalise_event("HORIZON")
+        == media.normalise_event("horizon")
+        == media.normalise_event(" Horizon ")
+    )
 
 
 def test_missing_event_becomes_unsorted() -> None:

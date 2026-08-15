@@ -17,6 +17,7 @@ what Drive's own behaviour requires anyway.
 from __future__ import annotations
 
 import hashlib
+import json
 import shutil
 from pathlib import Path
 from typing import Any
@@ -42,12 +43,20 @@ class FakeDrive:
     """Implements the :class:`src.drive.Drive` protocol against a folder."""
 
     def __init__(self, root: Path) -> None:
-        self.root = Path(root)
+        # Resolved to an absolute path: a relative one cannot be turned into
+        # the file:// link that stands in for a Drive share link.
+        self.root = Path(root).expanduser().resolve()
         self.root.mkdir(parents=True, exist_ok=True)
 
-        # Metadata a test wants a file to report, keyed by file id. Real
-        # cameras write this into the file; here it is injected.
-        self.metadata: dict[str, dict[str, Any]] = {}
+        # Metadata a caller wants a file to report, keyed by its path inside
+        # the drive. Real cameras write this into the file; RAW and video
+        # stand-ins have no readable bytes, so it is injected instead.
+        #
+        # Persisted beside the drive rather than held in memory: fake mode is
+        # how someone tries the tool out, and a restart that silently forgot
+        # every camera name would hold their whole test shoot for review.
+        self._meta_path = self.root.parent / f"{self.root.name}-metadata.json"
+        self.metadata: dict[str, dict[str, Any]] = self._load_metadata()
 
         # Failure injection: map of operation name to the number of times it
         # should still fail, e.g. {"upload": 2}. Used to test retries.
@@ -56,6 +65,24 @@ class FakeDrive:
         # Every operation performed, for tests that assert what was *not*
         # done — nothing in this project may delete an original.
         self.calls: list[tuple[str, str]] = []
+
+    # --- injected metadata, kept on disk ----------------------------------
+
+    def _load_metadata(self) -> dict[str, dict[str, Any]]:
+        if not self._meta_path.exists():
+            return {}
+        try:
+            loaded = json.loads(self._meta_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+        return loaded if isinstance(loaded, dict) else {}
+
+    def _save_metadata(self) -> None:
+        self._meta_path.write_text(json.dumps(self.metadata, indent=1), encoding="utf-8")
+
+    def _key(self, path: Path) -> str:
+        """Metadata key for a file: its path inside the drive."""
+        return path.relative_to(self.root).as_posix()
 
     # --- helpers ----------------------------------------------------------
 
@@ -92,7 +119,7 @@ class FakeDrive:
             )
 
         data = path.read_bytes()
-        injected = self.metadata.get(file_id, {})
+        injected = self.metadata.get(self._key(path), {})
         return DriveFile(
             id=file_id,
             name=path.name,
@@ -166,7 +193,12 @@ class FakeDrive:
             return file_id  # already filed
         target = _free_name(target)
 
+        carried = self.metadata.pop(self._key(source), None)
         shutil.move(str(source), str(target))
+        if carried is not None:
+            self.metadata[self._key(target)] = carried
+        self._save_metadata()
+
         self.calls.append(("file_into", source.name))
         return _id_for(target.relative_to(self.root))
 
@@ -210,16 +242,15 @@ class FakeDrive:
         else:
             target.write_bytes(data)
 
-        entry = self._to_file(target)
         injected: dict[str, Any] = {}
         if image_metadata is not None:
             injected["imageMediaMetadata"] = image_metadata
         if video_metadata is not None:
             injected["videoMediaMetadata"] = video_metadata
         if injected:
-            self.metadata[entry.id] = injected
-            entry = self._to_file(target)
-        return entry
+            self.metadata[self._key(target)] = injected
+            self._save_metadata()
+        return self._to_file(target)
 
     def fail_next(self, operation: str, times: int = 1) -> None:
         """Make the next ``times`` calls to ``operation`` raise."""

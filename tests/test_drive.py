@@ -286,3 +286,33 @@ def test_the_protocol_and_the_fake_have_not_drifted() -> None:
     assert required, "protocol has no methods; the check would pass vacuously"
     for name in required:
         assert callable(getattr(FakeDrive, name, None)), f"FakeDrive lacks {name}"
+
+
+def test_a_relative_root_still_produces_links(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """settings.yaml may hold a relative fake_drive_dir; links must still work."""
+    monkeypatch.chdir(tmp_path)
+    relative = FakeDrive(Path("fakedrive"))
+    folder = relative.ensure_folder(ROOT_ID, "photos")
+    assert relative.share_anyone_reader(folder).startswith("file://")
+
+
+def test_injected_metadata_survives_a_restart(tmp_path: Path) -> None:
+    """Fake mode is how someone tries the tool out; a restart must not
+    forget every camera name and hold their whole test shoot."""
+    first = FakeDrive(tmp_path / "drive")
+    first.add_file(ROOT_ID, "IMG_0001.CR2", data=b"raw",
+                   image_metadata={"cameraMake": "Canon", "cameraModel": "EOS R6"})
+
+    reopened = FakeDrive(tmp_path / "drive")
+    entry = reopened.list_children(ROOT_ID)[0]
+    assert entry.image_metadata["cameraModel"] == "EOS R6"
+
+
+def test_metadata_follows_a_file_when_it_is_filed(tmp_path: Path) -> None:
+    drive = FakeDrive(tmp_path / "drive")
+    entry = drive.add_file(ROOT_ID, "IMG_0001.CR2", data=b"raw",
+                           image_metadata={"cameraMake": "Canon"})
+    destination = drive.ensure_path(ROOT_ID, ("2026", "Horizon", "raw"))
+
+    filed = drive.get_file(drive.file_into(entry.id, destination))
+    assert filed.image_metadata["cameraMake"] == "Canon"
