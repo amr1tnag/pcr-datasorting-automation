@@ -17,7 +17,7 @@ SETTINGS_PATH: Path = PROJECT_ROOT / "settings.yaml"
 
 DEFAULTS: dict[str, Any] = {
     "watermark_path": "assets/watermark.png",
-    "watermark_scale": 0.16,
+    "watermark_scale": 0.10,
     "watermark_opacity": 0.75,
     "watermark_margin": 0.025,
     "watermark_corner": "bottom-right",
@@ -43,8 +43,10 @@ DEFAULT_SETTINGS_YAML: str = """\
 # and this works as-is; point elsewhere if you keep it somewhere else.
 watermark_path: assets/watermark.png
 
-# Watermark width as a fraction of the photo's long edge.
-watermark_scale: 0.16
+# Watermark width as a fraction of the photo's long edge. The club logo is
+# square, so it covers far more of the frame than a wide logo would at the
+# same number — 0.10 is about right for it, 0.16 suits a wordmark.
+watermark_scale: 0.10
 
 # Watermark alpha, 0.0 (invisible) to 1.0 (opaque).
 watermark_opacity: 0.75

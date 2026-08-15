@@ -40,7 +40,7 @@ class WatermarkStyle:
     """How the mark is drawn. Every value comes from settings.yaml."""
 
     path: Path
-    scale: float = 0.16          # width, as a fraction of the photo's long edge
+    scale: float = 0.10          # width, as a fraction of the photo's long edge
     opacity: float = 0.75
     margin: float = 0.025        # gap from the edges, same fraction
     corner: str = "bottom-right"
@@ -61,7 +61,7 @@ class WatermarkStyle:
 
         return cls(
             path=path,
-            scale=float(cfg.get("watermark_scale", 0.16)),
+            scale=float(cfg.get("watermark_scale", 0.10)),
             opacity=float(cfg.get("watermark_opacity", 0.75)),
             margin=float(cfg.get("watermark_margin", 0.025)),
             corner=corner,
