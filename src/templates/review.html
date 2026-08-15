@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% if items %}
+<p>
+  {{ items|length }} file(s) the tool would not guess at. Everything else has
+  already been filed and published.
+</p>
+
+<form method="post" action="{{ url_for('apply_review') }}">
+  <table>
+    <tr>
+      <th><input type="checkbox" onclick="toggleAll(this)"></th>
+      <th>File</th><th>Kind</th><th>Event</th><th>Camera</th>
+      <th>Orientation</th><th>Why it is here</th>
+    </tr>
+    {% for item in items %}
+    <tr>
+      <td><input type="checkbox" name="ids" value="{{ item.id }}"></td>
+      <td>{{ item.orig_name }}</td>
+      <td class="muted">{{ item.kind }}</td>
+      <td>{{ item.event }}</td>
+      <td>{{ item.camera or "—" }}</td>
+      <td>{{ item.orientation or "—" }}</td>
+      <td class="reason">{{ item.reasons }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <div class="actions">
+    <span class="muted">Set on all ticked:</span>
+
+    <input name="event" list="events" placeholder="event">
+    <datalist id="events">
+      {% for event in events %}<option value="{{ event }}">{% endfor %}
+    </datalist>
+
+    <input name="camera" list="cameras" placeholder="camera">
+    <datalist id="cameras">
+      {% for camera in cameras %}<option value="{{ camera }}">{% endfor %}
+    </datalist>
+
+    <select name="orientation">
+      <option value="">orientation</option>
+      {% for orientation in orientations %}
+      <option value="{{ orientation }}">{{ orientation }}</option>
+      {% endfor %}
+    </select>
+
+    <button type="submit" name="action" value="save">Save only</button>
+    <button type="submit" name="action" value="approve" class="primary">
+      Save and publish
+    </button>
+  </div>
+</form>
+{% else %}
+<div class="empty">
+  <p>Nothing needs a decision.</p>
+  <p class="muted">Everything that came in was filed without asking.</p>
+</div>
+{% endif %}
+
+{% endblock %}

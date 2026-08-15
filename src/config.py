@@ -31,6 +31,8 @@ DEFAULTS: dict[str, Any] = {
     "oauth_token": "token.json",
     "fake_drive_dir": "~/PhotoCircle/FAKEDRIVE",
     "poll_interval_secs": 60,
+    "dashboard_host": "127.0.0.1",
+    "dashboard_port": 5000,
     "stable_wait_secs": 2.0,
     "upload_workers": 3,
     "base_dir": "~/PhotoCircle",
@@ -90,6 +92,12 @@ fake_drive_dir: ~/PhotoCircle/FAKEDRIVE
 
 # Seconds between checks of the drop folder.
 poll_interval_secs: 60
+
+# The dashboard listens on this machine only. Anyone who can reach it can
+# change where files are filed, so opening it to the network (0.0.0.0) is a
+# decision to take on purpose.
+dashboard_host: 127.0.0.1
+dashboard_port: 5000
 
 # Seconds a file's size must stay unchanged before it counts as fully written.
 stable_wait_secs: 2.0

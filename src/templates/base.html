@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Photo Circle{% endblock %}</title>
+<style>
+  /* One stylesheet, no framework. Everything here is meant to be edited
+     by whoever inherits this without looking anything up. */
+  :root { color-scheme: light dark; }
+  body {
+    font-family: system-ui, "Segoe UI", sans-serif;
+    margin: 0; padding: 0 1.5rem 4rem;
+    background: Canvas; color: CanvasText;
+    max-width: 70rem; margin-inline: auto;
+  }
+  header { display: flex; gap: 1.5rem; align-items: baseline;
+           padding: 1.25rem 0; border-bottom: 1px solid #8883; margin-bottom: 1.5rem; }
+  header h1 { font-size: 1.1rem; margin: 0; }
+  nav a { margin-right: 1rem; text-decoration: none; color: inherit; opacity: .7; }
+  nav a.active, nav a:hover { opacity: 1; text-decoration: underline; }
+  .pill { display: inline-block; min-width: 1.2rem; padding: 0 .4rem;
+          border-radius: 1rem; background: #8883; font-size: .8rem; text-align: center; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid #8882; }
+  th { font-weight: 600; opacity: .7; font-size: .8rem; text-transform: uppercase; }
+  tr:hover td { background: #8881; }
+  .actions { position: sticky; bottom: 0; background: Canvas;
+             border-top: 1px solid #8883; padding: 1rem 0; display: flex;
+             gap: .6rem; flex-wrap: wrap; align-items: center; }
+  input, select, button { font: inherit; padding: .35rem .5rem; }
+  button { cursor: pointer; }
+  button.primary { background: #2d6a4f; color: white; border: 0; border-radius: .3rem;
+                   padding: .45rem 1rem; }
+  .muted { opacity: .65; }
+  .reason { color: #b45309; }
+  .empty { padding: 3rem 0; text-align: center; opacity: .7; }
+  .flash { background: #2d6a4f22; border-left: 3px solid #2d6a4f;
+           padding: .6rem .9rem; margin-bottom: 1rem; }
+  code { background: #8882; padding: .1rem .3rem; border-radius: .2rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Photo Circle</h1>
+  <nav>
+    <a href="{{ url_for('home') }}">Overview</a>
+    <a href="{{ url_for('review') }}">Needs a decision</a>
+    <a href="{{ url_for('failed') }}">Failed</a>
+    <a href="{{ url_for('cameras') }}">Cameras</a>
+  </nav>
+</header>
+
+{% for message in get_flashed_messages() %}
+  <p class="flash">{{ message }}</p>
+{% endfor %}
+
+{% block content %}{% endblock %}
+
+<script>
+  // The only script in the project: tick every row at once.
+  function toggleAll(source) {
+    document.querySelectorAll('input[name="ids"]').forEach(box => box.checked = source.checked);
+  }
+</script>
+</body>
+</html>

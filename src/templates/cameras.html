@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+
+<p>
+  When one camera body reports two different names — usually after a firmware
+  update — map one onto the other here and every future file follows the
+  mapping. Files already in the archive stay where they are.
+</p>
+
+<form method="post" action="{{ url_for('add_alias') }}">
+  <div class="actions" style="position: static; border: 0;">
+    <input name="raw" placeholder="name as the camera reports it" size="30" required>
+    <span class="muted">should be filed as</span>
+    <input name="clean" list="cameras" placeholder="name to use" size="24" required>
+    <datalist id="cameras">
+      {% for camera in cameras %}<option value="{{ camera }}">{% endfor %}
+    </datalist>
+    <button type="submit" class="primary">Add</button>
+  </div>
+</form>
+
+{% if aliases %}
+<table>
+  <tr><th>Reported as</th><th>Filed as</th></tr>
+  {% for alias in aliases %}
+  <tr><td><code>{{ alias.raw }}</code></td><td>{{ alias.clean }}</td></tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">No mappings yet.</p>
+{% endif %}
+
+{% endblock %}

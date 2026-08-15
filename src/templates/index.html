@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+
+<p>
+  {{ counts.uploaded }} filed ·
+  <a href="{{ url_for('review') }}">{{ counts.needs_review }} waiting on you</a> ·
+  <a href="{{ url_for('failed') }}">{{ counts.failed }} failed</a>
+</p>
+
+<h2>Galleries</h2>
+{% if galleries %}
+<table>
+  <tr><th>Event</th><th>Year</th><th>Link to share</th></tr>
+  {% for gallery in galleries %}
+  <tr>
+    <td>{{ gallery.event }}</td>
+    <td>{{ gallery.year }}</td>
+    <td>
+      {% if gallery.link %}<a href="{{ gallery.link }}">{{ gallery.link }}</a>
+      {% else %}<span class="muted">not shared yet</span>{% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">Nothing has been published yet.</p>
+{% endif %}
+
+<h2>Events</h2>
+{% if events %}
+<table>
+  <tr><th>Event</th><th>Year</th><th>Files</th><th>Filed</th><th>Held</th><th>Failed</th></tr>
+  {% for row in events %}
+  <tr>
+    <td>{{ row.event }}</td>
+    <td>{{ row.year }}</td>
+    <td>{{ row.total }}</td>
+    <td>{{ row.done or 0 }}</td>
+    <td>{% if row.held %}<span class="reason">{{ row.held }}</span>{% else %}0{% endif %}</td>
+    <td>{% if row.failed %}<span class="reason">{{ row.failed }}</span>{% else %}0{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<div class="empty">
+  <p>Nothing has come in yet.</p>
+  <p class="muted">Volunteers upload a folder named after the event into the drop folder.</p>
+</div>
+{% endif %}
+
+{% endblock %}

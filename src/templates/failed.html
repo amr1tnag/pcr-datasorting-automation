@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% if items %}
+<p>
+  These stopped partway. Nothing was deleted — every original is still where
+  the volunteer left it, so retrying is always safe.
+</p>
+
+<form method="post" action="{{ url_for('retry') }}">
+  <table>
+    <tr>
+      <th><input type="checkbox" onclick="toggleAll(this)"></th>
+      <th>File</th><th>Event</th><th>Tries</th><th>What went wrong</th>
+    </tr>
+    {% for item in items %}
+    <tr>
+      <td><input type="checkbox" name="ids" value="{{ item.id }}"></td>
+      <td>{{ item.orig_name }}</td>
+      <td>{{ item.event }}</td>
+      <td>{{ item.attempts }}</td>
+      <td class="reason">{{ item.error }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <div class="actions">
+    <button type="submit" class="primary">Try these again</button>
+  </div>
+</form>
+{% else %}
+<div class="empty"><p>Nothing has failed.</p></div>
+{% endif %}
+
+{% endblock %}
